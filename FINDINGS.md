@@ -1,4 +1,105 @@
-# neojac findings: porting vaultwarden (dani-garcia/vaultwarden) to Jac
+# neojac findings: porting vaultwarden to Jac
+
+**Original:** [dani-garcia/vaultwarden](https://github.com/dani-garcia/vaultwarden), a Bitwarden-compatible password-manager server in Rust (Rocket + Diesel, 64 files, 40.6k lines).
+**Port:** this repo, on neojac 0.3.3: 1,292 lines of app code and 411 lines in 2 plugins.
+**Scope:** accounts, login and refresh, sync, folders and ciphers. See the [README](README.md) for what isn't ported.
+**Status:** done.
+
+## The short version
+
+- **Works with the real client:** the official Bitwarden `bw` CLI runs against the Jac port unchanged.
+- **Same replies:** all 4 comparison checks match the original exactly:
+  - the full `bw` session;
+  - 23/23 requests and replies;
+  - 13/13 error cases;
+  - 57/57 edge cases.
+- **13 findings:** 3 blockers, 4 major and 6 minor.
+- **The built-in server can't describe a real HTTP API:** it has no PUT/DELETE, no path parameters and no status codes. So the port has its own transport plugin.
+- **Hand-written:** `neojac port` translated **0 of the 64** Rust files.
+
+## Ground rules
+
+We met neojac cold, the way a new user would:
+
+- Only the latest neojac release was used.
+- Everything about Jac was learned from what neojac ships: `neojac docs`, `neojac skills`, `neojac help` and its error messages.
+- neojac's own source was never read. Each bug is reported by its symptom and a small repro, and any guess at a cause is labelled as a guess.
+- The original app's source could be read freely.
+- Every gap was logged when it was hit. Nothing was quietly worked around.
+
+## What we did
+
+| Step | Result |
+|---|---|
+| 1. Machine-translate (`neojac port`) | 0 of 64 files. A binary crate is refused, and two inputs crashed the tool with a Python traceback. |
+| 2. Write it by hand, in idiomatic Jac | Done. Users and devices are on `root.shared`, each user's folders and ciphers are on their own `root`, and the modules are wired in `archwire.jac`. |
+| 3. Plugins for what the server can't do | `rest_transport` maps vaultwarden's routes, methods, bodies and statuses. `bw_auth` reads the bearer JWT. |
+| 4. Prove it behaves the same | All 4 checks below are identical. |
+
+## How "the same" is checked
+
+Both servers run behind `proof/proxy.py`, a TLS proxy that logs every request and reply. Ids, dates, tokens and ciphertext are masked. Any other difference counts as a failure, including a status code, a field, the order of keys or an error message.
+
+| Check | Baseline from the original | Result |
+|---|---|---|
+| Real `bw` session: register, log in, sync, create, edit, trash, restore and delete folders and items, lock, unlock, log out | `proof/expected.out` | identical |
+| Every request and reply of that session | `proof/expected.wire` | 23 / 23 |
+| Error replies: bad logins, bad grants, bad refresh, 401, 404, malformed bodies | `proof/expected.errors` | 13 / 13 |
+| Edge cases: validation messages, another user's items, 422 shapes, cipher JSON normalisation | `proof/expected.probe` | 57 / 57 |
+
+## Findings at a glance
+
+| Severity | Count | Meaning |
+|---|---|---|
+| Blocker | 3 | Stops the port as neojac stands |
+| Major | 4 | Needs a real workaround, such as a custom plugin |
+| Minor | 6 | Friction, wrong docs, or an unclear error |
+
+Click a number to jump to its full repro.
+
+### The built-in server
+
+| # | Severity | What happens |
+|---|---|---|
+| [#4](#4-restspec-cannot-serve-an-existing-http-api) | Blocker | `@restspec` has GET and POST only, with no path parameters, headers, body or status. An existing HTTP API can't be served. |
+| [#7](#7-an-endpoint-cannot-learn-who-is-calling) | Major | An endpoint can't tell who is calling. The auth plugin knows, but the endpoint only gets `root`, so the JWT is checked twice. |
+| [#8](#8-no-json-value-type-for-an-endpoint) | Major | There is no JSON value type for endpoints, so an open-shaped body (a Bitwarden cipher) can't be a parameter. |
+| [#10](#10-an-endpoints-reply-has-no-status-content-type-or-headers) | Major | Replies have no status, content type or headers. A 400 with JSON, a 401 with HTML and an empty 200 all need a plugin. |
+
+### Porting tools
+
+| # | Severity | What happens |
+|---|---|---|
+| [#2](#2-neojac-port-refuses-a-binary-crate) | Blocker | `port` refuses a binary crate (no `src/lib.rs`), and every Rust server is one. |
+| [#3](#3-rust-port-refuses-nearly-every-construct-real-code-uses) | Blocker | The Rust port refuses `String`, enums, `match`, traits, generics, closures, modules and `use`. |
+| [#1](#1-neojac-port-crashes-on-a-binary-crates-src-or-mainrs) | Major | `port` on a crate's `src/` or `main.rs` crashes with a Python traceback. |
+
+### Language
+
+| # | Severity | What happens |
+|---|---|---|
+| [#11](#11-a-class-cannot-derive-from-an-obj) | Minor | A `class` can't derive from an `obj`, so a transport's claim that holds a Python server must be an `obj`. |
+
+### Error messages
+
+| # | Severity | What happens |
+|---|---|---|
+| [#6](#6-restspec-diagnostics-wrong-wording-and-a-location-inside-neojac) | Minor | `HTTPMethod.PUT` gets an unrelated error, and a restspec error points into neojac's runtime file. |
+| [#9](#9-a-union-endpoint-is-reported-inside-neojacs-runtime) | Minor | A union-typed endpoint is reported inside neojac's codec, and only after other errors are fixed. |
+| [#13](#13-lint-rules-print-as-errors-that-do-not-stop-a-build) | Minor | Lints print as `error[...]` and fail `check`, but `build` succeeds. |
+
+### Documentation
+
+| # | Severity | What happens |
+|---|---|---|
+| [#5](#5-writing-a-plugin-points-at-examples-that-are-not-shipped) | Minor | The `writing-a-plugin` skill points at examples that don't ship. |
+| [#12](#12-data_dir-is-missing-from-the-stdjacplan-table) | Minor | `data_dir()` is used in the guides but missing from the `stdjac.plan` reference table. |
+
+Other ports from the same run: [marked-jac](https://github.com/ThiruvarankanM/marked-jac).
+
+---
+
+## Setup details
 
 Compiler: neojac 0.3.3 (macos-aarch64, 98a4abf03de2)
 Target: vaultwarden, a Bitwarden-compatible password manager server (Rust, 64 files, 40.6k lines; Rocket + Diesel)
