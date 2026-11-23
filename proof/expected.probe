@@ -1,0 +1,53 @@
+badfolder 400 Invalid folder
+eve-folder 400 Invalid folder
+badtype 400 Invalid type
+noname 400 The Name field is required.
+nodata 400 Data missing
+longnotes 400 The field Notes exceeds the maximum encrypted value length of 10000 characters.
+encfor 400 Cipher was not encrypted for the current user. Please try again.
+stale 400 The client copy of this cipher is out of date. Resync the client and try again.
+note 200 {"card": null, "deletedDate": null, "favorite": false, "fields": null, "folderId": null, "identity": null, "login": null, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": {"type": 0}, "sshKey": null, "type": 2}
+ssh 200 {"card": null, "deletedDate": null, "favorite": false, "fields": null, "folderId": null, "identity": null, "login": null, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": null, "sshKey": null, "type": 5}
+fields 200 {"card": null, "deletedDate": null, "favorite": false, "fields": [{"name": "2.a", "type": 0, "value": "2.b"}, {"name": "2.c", "type": 1}], "folderId": null, "identity": null, "login": {"uri": null, "uris": null, "username": "2.u"}, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": [{"lastUsedDate": "<date>", "password": "2.p"}], "reprompt": 0, "secureNote": null, "sshKey": null, "type": 1}
+matchstr 200 {"card": null, "deletedDate": null, "favorite": false, "fields": null, "folderId": null, "identity": null, "login": {"uri": "2.x", "uris": [{"match": 3, "uri": "2.x"}, {"match": null, "uri": "2.y"}]}, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": null, "sshKey": null, "type": 1}
+caps 422 <html 422 Unprocessable Entity>
+eve-read 400 Cipher is not owned by user
+eve-del 400 Cipher can't be deleted by user
+eve-edit 400 Cipher is not write accessible
+eve-folderget 400 Invalid folder
+eve-folderdel 400 Invalid folder
+missing-cipher 400 Cipher doesn't exist
+missing-folder 400 Invalid folder
+restore-live 200 {"card": null, "deletedDate": null, "favorite": false, "fields": null, "folderId": "<id>", "identity": null, "login": {"uri": null, "uris": null, "username": "2.u"}, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": null, "sshKey": null, "type": 1}
+trash 200 
+read-trashed 200 {"card": null, "deletedDate": "<date>", "favorite": false, "fields": null, "folderId": "<id>", "identity": null, "login": {"uri": null, "uris": null, "username": "2.u"}, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": null, "sshKey": null, "type": 1}
+folder-del 200 
+cipher-after-folder-del 200 {"card": null, "deletedDate": "<date>", "favorite": false, "fields": null, "folderId": null, "identity": null, "login": {"uri": null, "uris": null, "username": "2.u"}, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": null, "sshKey": null, "type": 1}
+keyid-again 422 <html 422 Unprocessable Entity>
+keyid-again2 422 <html 422 Unprocessable Entity>
+create-shared 200 {"card": null, "deletedDate": null, "favorite": false, "fields": null, "folderId": null, "identity": null, "login": {"uri": null, "uris": null, "username": "2.u"}, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": null, "sshKey": null, "type": 1}
+list 200 6
+profile-keys 200 ["_status", "accountKeys", "avatarColor", "creationDate", "culture", "email", "emailVerified", "forcePasswordReset", "id", "key", "name", "object", "organizations", "organizationsNew", "premium", "premiumFromOrganization", "privateKey", "providerOrganizations", "providers", "securityStamp", "twoFactorEnabled", "usesKeyConnector"]
+keyid-ok 200 
+keyid-upper 422 <html 422 Unprocessable Entity>
+cipher-badkid 422 <html 422 Unprocessable Entity>
+cipher-wrongkid 400 Cipher was not encrypted with the current user key. Please try again.
+cipher-notype 422 <html 422 Unprocessable Entity>
+cipher-strtype 422 <html 422 Unprocessable Entity>
+cipher-favstr 422 <html 422 Unprocessable Entity>
+cipher-list 422 <html 422 Unprocessable Entity>
+share-nocoll 422 <html 422 Unprocessable Entity>
+share-caps 200 {"card": null, "deletedDate": null, "favorite": false, "fields": null, "folderId": null, "identity": null, "login": {"uri": null, "uris": null, "username": "2.u"}, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": null, "sshKey": null, "type": 1}
+folder-noname 422 <html 422 Unprocessable Entity>
+folder-intname 422 <html 422 Unprocessable Entity>
+prelogin-empty 422 <html 422 Unprocessable Entity>
+prelogin-caps 422 <html 422 Unprocessable Entity>
+sendver-noemail 422 <html 422 Unprocessable Entity>
+register-empty 422 <html 422 Unprocessable Entity>
+ftypes 200 {"card": null, "deletedDate": null, "favorite": false, "fields": [{"type": 1}, {"type": 3}, {"type": 1}, {"type": 2.5}, {"type": 1}], "folderId": null, "identity": null, "login": {"uri": null, "uris": null, "username": "2.u"}, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": null, "sshKey": null, "type": 1}
+matches 200 {"card": null, "deletedDate": null, "favorite": false, "fields": null, "folderId": null, "identity": null, "login": {"uri": "2.a", "uris": [{"match": null, "uri": "2.a"}, {"match": 4, "uri": "2.b"}, {"match": null, "uri": "2.c"}]}, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": null, "sshKey": null, "type": 1}
+dates 200 {"login": {"passwordRevisionDate": "2024-05-01T10:00:00.123456+02:00", "uri": null, "uris": null, "username": "2.u"}, "ph": [{"lastUsedDate": "2024-05-01T10:00:00.000000+02:00", "password": "2.a"}, {"lastUsedDate": "2024-05-01T10:00:00.000000Z", "password": "2.b"}, {"lastUsedDate": "1970-01-01T00:00:00.000000Z", "password": "2.c"}, {"lastUsedDate": "1970-01-01T00:00:00.000000Z", "password": "2.d"}, {"lastUsedDate": "2024-05-01T10:00:00.000000Z", "password": "2.e"}]}
+ssh-int 200 {"card": null, "deletedDate": null, "favorite": false, "fields": null, "folderId": null, "identity": null, "login": null, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": null, "sshKey": null, "type": 5}
+ssh-ok 200 {"card": null, "deletedDate": null, "favorite": false, "fields": null, "folderId": null, "identity": null, "login": null, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": null, "sshKey": {"keyFingerprint": "f", "privateKey": "2.p", "publicKey": "2.q"}, "type": 5}
+note-float 200 {"card": null, "deletedDate": null, "favorite": false, "fields": null, "folderId": null, "identity": null, "login": null, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": {"type": 0.0}, "sshKey": null, "type": 2}
+note-bool 200 {"card": null, "deletedDate": null, "favorite": false, "fields": null, "folderId": null, "identity": null, "login": null, "name": "2.n", "notes": null, "object": "cipherDetails", "passwordHistory": null, "reprompt": 0, "secureNote": {"type": 0}, "sshKey": null, "type": 2}

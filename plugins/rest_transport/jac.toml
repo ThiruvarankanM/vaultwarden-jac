@@ -1,0 +1,7 @@
+[project]
+name = "rest_transport"
+kind = "plugin"
+
+[plugin]
+fills = "transport"
+class = "rest_transport.rest.RestTransport"

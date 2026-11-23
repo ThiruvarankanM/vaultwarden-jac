@@ -1,0 +1,7 @@
+[project]
+name = "bw_auth"
+kind = "plugin"
+
+[plugin]
+fills = "auth"
+class = "bw_auth.auth.BwAuth"

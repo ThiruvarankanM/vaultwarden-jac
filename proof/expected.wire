@@ -1,0 +1,69 @@
+POST /identity/accounts/register/send-verification-email 200
+  req  {"email": "amy@example.com", "name": "<s>"}
+  resp "<s>"
+POST /identity/accounts/register/finish 200
+  req  {"email": "amy@example.com", "emailVerificationToken": "<s>", "kdf": 0, "kdfIterations": 600000, "masterPasswordHash": "<s>", "masterPasswordHint": null, "userAsymmetricKeys": {"encryptedPrivateKey": "<s>", "publicKey": "<s>"}, "userSymmetricKey": "<s>"}
+  resp {"object": "registerFinish"}
+GET /api/config 200
+  req  null
+  resp {"communication": null, "environment": {"api": "http://localhost/api", "cloudRegion": null, "fillAssistRules": "https://fillassist.bitwarden.com", "identity": "http://localhost/identity", "notifications": "http://localhost/notifications", "sso": "", "vault": "http://localhost"}, "featureStates": {"pm-19148-innovation-archive": true}, "gitHash": null, "object": "config", "push": {"pushTechnology": 0, "vapidPublicKey": null}, "server": {"name": "<s>", "url": "https://github.com/dani-garcia/vaultwarden"}, "settings": {"disableUserRegistration": false, "suppressOnboardingInterstitials": false}, "version": "2026.6.0"}
+POST /identity/accounts/prelogin/password 200
+  req  {"email": "amy@example.com"}
+  resp {"kdf": 0, "kdfIterations": 600000, "kdfMemory": null, "kdfParallelism": null, "kdfSettings": {"iterations": 600000, "kdfType": 0, "memory": null, "parallelism": null}, "salt": null}
+POST /identity/connect/token 200
+  req  {"client_id": "cli", "deviceIdentifier": "<s>", "deviceName": "macos", "deviceType": "24", "grant_type": "password", "password": "<s>", "scope": "api%20offline_access", "username": "<s>"}
+  resp {"AccountKeys": {"object": "privateKeys", "publicKeyEncryptionKeyPair": {"object": "publicKeyEncryptionKeyPair", "publicKey": "<s>", "signedPublicKey": null, "wrappedPrivateKey": "<s>"}, "securityState": null, "signatureKeyPair": null}, "ForcePasswordReset": false, "Kdf": 0, "KdfIterations": 600000, "KdfMemory": null, "KdfParallelism": null, "Key": "<s>", "MasterPasswordPolicy": {"Object": "masterPasswordPolicy"}, "PrivateKey": "<s>", "UserDecryptionOptions": {"HasMasterPassword": true, "MasterPasswordUnlock": {"Kdf": {"Iterations": 600000, "KdfType": 0, "Memory": null, "Parallelism": null}, "MasterKeyEncryptedUserKey": "<s>", "MasterKeyWrappedUserKey": "<s>", "Salt": "amy@example.com"}, "Object": "userDecryptionOptions"}, "access_token": "<s>", "expires_in": 7200, "refresh_token": "<s>", "scope": "api offline_access", "token_type": "Bearer"}
+GET /api/config 200
+  req  null
+  resp {"communication": null, "environment": {"api": "http://localhost/api", "cloudRegion": null, "fillAssistRules": "https://fillassist.bitwarden.com", "identity": "http://localhost/identity", "notifications": "http://localhost/notifications", "sso": "", "vault": "http://localhost"}, "featureStates": {"pm-19148-innovation-archive": true}, "gitHash": null, "object": "config", "push": {"pushTechnology": 0, "vapidPublicKey": null}, "server": {"name": "<s>", "url": "https://github.com/dani-garcia/vaultwarden"}, "settings": {"disableUserRegistration": false, "suppressOnboardingInterstitials": false}, "version": "2026.6.0"}
+GET /api/sync 200
+  req  null
+  resp {"ciphers": [], "collections": [], "domains": null, "folders": [], "object": "sync", "policies": [], "policiesNew": [], "profile": {"_status": 0, "accountKeys": {"object": "privateKeys", "publicKeyEncryptionKeyPair": {"object": "publicKeyEncryptionKeyPair", "publicKey": "<s>", "signedPublicKey": null, "wrappedPrivateKey": "<s>"}, "securityState": null, "signatureKeyPair": null}, "avatarColor": null, "creationDate": "<date>", "culture": "en-US", "email": "amy@example.com", "emailVerified": true, "forcePasswordReset": false, "id": "<s>", "key": "<s>", "name": "<s>", "object": "profile", "organizations": [], "organizationsNew": [], "premium": true, "premiumFromOrganization": false, "privateKey": "<s>", "providerOrganizations": [], "providers": [], "securityStamp": "<s>", "twoFactorEnabled": false, "usesKeyConnector": false}, "sends": [], "userDecryption": {"masterPasswordUnlock": {"containedKeyId": null, "kdf": {"iterations": 600000, "kdfType": 0, "memory": null, "parallelism": null}, "masterKeyEncryptedUserKey": "<s>", "masterKeyWrappedUserKey": "<s>", "salt": "amy@example.com"}}}
+GET /api/accounts/revision-date 200
+  req  null
+  resp "<ms>"
+GET /api/accounts/revision-date 200
+  req  null
+  resp "<ms>"
+POST /api/accounts/key-management/user-key-id 200
+  req  {"userKeyId": "<kid>"}
+  resp null
+POST /identity/connect/token 200
+  req  {"client_id": "cli", "grant_type": "refresh_token", "refresh_token": "<s>"}
+  resp {"access_token": "<s>", "expires_in": 7200, "refresh_token": "<s>", "scope": "api offline_access", "token_type": "Bearer"}
+GET /api/sync 200
+  req  null
+  resp {"ciphers": [], "collections": [], "domains": null, "folders": [], "object": "sync", "policies": [], "policiesNew": [], "profile": {"_status": 0, "accountKeys": {"object": "privateKeys", "publicKeyEncryptionKeyPair": {"object": "publicKeyEncryptionKeyPair", "publicKey": "<s>", "signedPublicKey": null, "wrappedPrivateKey": "<s>"}, "securityState": null, "signatureKeyPair": null}, "avatarColor": null, "creationDate": "<date>", "culture": "en-US", "email": "amy@example.com", "emailVerified": true, "forcePasswordReset": false, "id": "<s>", "key": "<s>", "name": "<s>", "object": "profile", "organizations": [], "organizationsNew": [], "premium": true, "premiumFromOrganization": false, "privateKey": "<s>", "providerOrganizations": [], "providers": [], "securityStamp": "<s>", "twoFactorEnabled": false, "usesKeyConnector": false}, "sends": [], "userDecryption": {"masterPasswordUnlock": {"containedKeyId": "<kid>", "kdf": {"iterations": 600000, "kdfType": 0, "memory": null, "parallelism": null}, "masterKeyEncryptedUserKey": "<s>", "masterKeyWrappedUserKey": "<s>", "salt": "amy@example.com"}, "userKeyId": "<kid>"}}
+GET /api/accounts/revision-date 200
+  req  null
+  resp "<ms>"
+POST /api/folders 200
+  req  {"name": "<s>"}
+  resp {"id": "<s>", "name": "<s>", "object": "folder", "revisionDate": "<date>"}
+POST /api/ciphers 200
+  req  {"encryptedByKeyId": "<kid>", "encryptedFor": "<s>", "favorite": false, "fields": [], "folderId": "<s>", "key": "<s>", "lastKnownRevisionDate": "<date>", "login": {"password": "<s>", "uris": [{"uri": "<s>", "uriChecksum": "<s>"}], "username": "<s>"}, "name": "<s>", "notes": "<s>", "reprompt": 0, "type": 1}
+  resp {"archivedDate": null, "attachments": null, "bankAccount": null, "card": null, "collectionIds": [], "creationDate": "<date>", "deletedDate": null, "driversLicense": null, "edit": true, "favorite": false, "fields": [], "folderId": "<s>", "id": "<s>", "identity": null, "key": "<s>", "login": {"password": "<s>", "uri": "<s>", "uris": [{"uri": "<s>", "uriChecksum": "<s>"}], "username": "<s>"}, "name": "<s>", "notes": "<s>", "object": "cipherDetails", "organizationId": null, "organizationUseTotp": true, "passport": null, "passwordHistory": null, "permissions": {"delete": true, "restore": true}, "reprompt": 0, "revisionDate": "<date>", "secureNote": null, "sshKey": null, "type": 1, "viewPassword": true}
+PUT /api/ciphers/<id> 200
+  req  {"attachments2": {}, "encryptedByKeyId": "<kid>", "encryptedFor": "<s>", "favorite": false, "fields": [], "folderId": "<s>", "key": "<s>", "lastKnownRevisionDate": "<date>", "login": {"password": "<s>", "uris": [{"uri": "<s>", "uriChecksum": "<s>"}], "username": "<s>"}, "name": "<s>", "notes": "<s>", "passwordHistory": [], "reprompt": 0, "type": 1}
+  resp {"archivedDate": null, "attachments": null, "bankAccount": null, "card": null, "collectionIds": [], "creationDate": "<date>", "deletedDate": null, "driversLicense": null, "edit": true, "favorite": false, "fields": [], "folderId": "<s>", "id": "<s>", "identity": null, "key": "<s>", "login": {"password": "<s>", "uri": "<s>", "uris": [{"uri": "<s>", "uriChecksum": "<s>"}], "username": "<s>"}, "name": "<s>", "notes": "<s>", "object": "cipherDetails", "organizationId": null, "organizationUseTotp": true, "passport": null, "passwordHistory": [], "permissions": {"delete": true, "restore": true}, "reprompt": 0, "revisionDate": "<date>", "secureNote": null, "sshKey": null, "type": 1, "viewPassword": true}
+PUT /api/ciphers/<id>/delete 200
+  req  null
+  resp null
+PUT /api/ciphers/<id>/restore 200
+  req  null
+  resp {"archivedDate": null, "attachments": null, "bankAccount": null, "card": null, "collectionIds": [], "creationDate": "<date>", "deletedDate": null, "driversLicense": null, "edit": true, "favorite": false, "fields": [], "folderId": "<s>", "id": "<s>", "identity": null, "key": "<s>", "login": {"password": "<s>", "uri": "<s>", "uris": [{"uri": "<s>", "uriChecksum": "<s>"}], "username": "<s>"}, "name": "<s>", "notes": "<s>", "object": "cipherDetails", "organizationId": null, "organizationUseTotp": true, "passport": null, "passwordHistory": [], "permissions": {"delete": true, "restore": true}, "reprompt": 0, "revisionDate": "<date>", "secureNote": null, "sshKey": null, "type": 1, "viewPassword": true}
+DELETE /api/ciphers/<id> 200
+  req  null
+  resp null
+DELETE /api/folders/<id> 200
+  req  null
+  resp null
+GET /api/accounts/revision-date 200
+  req  null
+  resp "<ms>"
+POST /identity/connect/token 200
+  req  {"client_id": "cli", "grant_type": "refresh_token", "refresh_token": "<s>"}
+  resp {"access_token": "<s>", "expires_in": 7200, "refresh_token": "<s>", "scope": "api offline_access", "token_type": "Bearer"}
+GET /api/sync 200
+  req  null
+  resp {"ciphers": [], "collections": [], "domains": null, "folders": [], "object": "sync", "policies": [], "policiesNew": [], "profile": {"_status": 0, "accountKeys": {"object": "privateKeys", "publicKeyEncryptionKeyPair": {"object": "publicKeyEncryptionKeyPair", "publicKey": "<s>", "signedPublicKey": null, "wrappedPrivateKey": "<s>"}, "securityState": null, "signatureKeyPair": null}, "avatarColor": null, "creationDate": "<date>", "culture": "en-US", "email": "amy@example.com", "emailVerified": true, "forcePasswordReset": false, "id": "<s>", "key": "<s>", "name": "<s>", "object": "profile", "organizations": [], "organizationsNew": [], "premium": true, "premiumFromOrganization": false, "privateKey": "<s>", "providerOrganizations": [], "providers": [], "securityStamp": "<s>", "twoFactorEnabled": false, "usesKeyConnector": false}, "sends": [], "userDecryption": {"masterPasswordUnlock": {"containedKeyId": "<kid>", "kdf": {"iterations": 600000, "kdfType": 0, "memory": null, "parallelism": null}, "masterKeyEncryptedUserKey": "<s>", "masterKeyWrappedUserKey": "<s>", "salt": "amy@example.com"}, "userKeyId": "<kid>"}}

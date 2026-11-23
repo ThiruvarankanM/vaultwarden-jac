@@ -1,0 +1,48 @@
+[project]
+name = "vaultwarden"
+
+[plugins]
+rest_transport = { path = "plugins/rest_transport" }
+bw_auth = { path = "plugins/bw_auth" }
+
+[transport]
+plugin = "rest_transport"
+
+[auth]
+plugin = "bw_auth"
+
+[transport.rest_transport]
+routes = [
+    "GET /alive = api.core.alive",
+    "GET /api/alive = api.core.alive",
+    "GET /api/now = api.core.alive",
+    "GET /api/config = api.core.config",
+    "POST /identity/accounts/prelogin = api.identity.prelogin(body)",
+    "POST /identity/accounts/prelogin/password = api.identity.prelogin(body)",
+    "POST /api/accounts/prelogin = api.identity.prelogin(body)",
+    "POST /identity/accounts/register/send-verification-email = api.identity.send_verification(body, accept=h.accept)",
+    "POST /identity/accounts/register/finish = api.identity.register_finish(body)",
+    "POST /identity/connect/token = api.identity.token(body, version=h.bitwarden-client-version)",
+    "GET /api/sync = api.core.sync(query, bearer)",
+    "GET /api/accounts/profile = api.core.profile(bearer)",
+    "GET /api/accounts/revision-date = api.core.revision_date(bearer)",
+    "POST /api/accounts/key-management/user-key-id = api.core.set_user_key_id(body, bearer)",
+    "GET /api/folders = api.folders.list_folders(bearer)",
+    "POST /api/folders = api.folders.add_folder(body, bearer)",
+    "GET /api/folders/{id} = api.folders.read_folder(id, bearer)",
+    "PUT /api/folders/{id} = api.folders.edit_folder(id, body, bearer)",
+    "POST /api/folders/{id} = api.folders.edit_folder(id, body, bearer)",
+    "DELETE /api/folders/{id} = api.folders.drop_folder(id, bearer)",
+    "POST /api/folders/{id}/delete = api.folders.drop_folder(id, bearer)",
+    "GET /api/ciphers = api.ciphers.list_ciphers(bearer)",
+    "POST /api/ciphers = api.ciphers.add_cipher(body, bearer)",
+    "POST /api/ciphers/create = api.ciphers.add_shared_cipher(body, bearer)",
+    "GET /api/ciphers/{id} = api.ciphers.read_cipher(id, bearer)",
+    "GET /api/ciphers/{id}/details = api.ciphers.read_cipher(id, bearer)",
+    "PUT /api/ciphers/{id} = api.ciphers.edit_cipher(id, body, bearer)",
+    "POST /api/ciphers/{id} = api.ciphers.edit_cipher(id, body, bearer)",
+    "PUT /api/ciphers/{id}/delete = api.ciphers.trash_cipher(id, bearer)",
+    "POST /api/ciphers/{id}/delete = api.ciphers.drop_cipher(id, bearer)",
+    "DELETE /api/ciphers/{id} = api.ciphers.drop_cipher(id, bearer)",
+    "PUT /api/ciphers/{id}/restore = api.ciphers.restore_cipher(id, bearer)",
+]
