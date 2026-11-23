@@ -1,7 +1,7 @@
 # neojac findings: porting vaultwarden to Jac
 
 **Original:** [dani-garcia/vaultwarden](https://github.com/dani-garcia/vaultwarden), a Bitwarden-compatible password-manager server in Rust (Rocket + Diesel, 64 files, 40.6k lines).
-**Port:** this repo, on neojac 0.3.3: 1,292 lines of app code and 411 lines in 2 plugins.
+**Port:** this repo, on neojac 0.4.0 (first written on 0.3.3): 1,518 lines of app code and 431 lines in 2 plugins.
 **Scope:** accounts, login and refresh, sync, folders and ciphers. See the [README](README.md) for what isn't ported.
 **Status:** done.
 
@@ -13,7 +13,10 @@
   - 23/23 requests and replies;
   - 13/13 error cases;
   - 57/57 edge cases.
-- **13 findings:** 3 blockers, 4 major and 6 minor.
+- **Survives a restart:** a second user logs in again after a restart and decrypts the same folders and items, as on the original.
+- **Smaller, and as fast except for passwords:** about 14 MB of memory against 26 MB. Every request is as fast as the original's except the ones that hash a password, which are about 10 times slower ([#15](#15-password-hashing-is-about-10-times-slower-inside-a-built-app)).
+- **17 findings:** 1 critical, 3 blockers, 6 major and 7 minor. All 13 from 0.3.3 were retested on 0.4.0: 11 are still there, 2 changed.
+- **A restart locked every user out** ([#14](#14-a-str--none-field-holding-none-locks-every-user-out-after-a-restart)): the 0.3.3 checks always started fresh, so they missed it. A `str | None` field holding `None` makes the kept users unreadable. The port now stores `""` instead.
 - **The built-in server can't describe a real HTTP API:** it has no PUT/DELETE, no path parameters and no status codes. So the port has its own transport plugin.
 - **Hand-written:** `neojac port` translated **0 of the 64** Rust files.
 
@@ -21,7 +24,7 @@
 
 We met neojac cold, the way a new user would:
 
-- Only the latest neojac release was used.
+- Only the latest neojac release was used: 0.3.3 at first, then 0.4.0 for the retest.
 - Everything about Jac was learned from what neojac ships: `neojac docs`, `neojac skills`, `neojac help` and its error messages.
 - neojac's own source was never read. Each bug is reported by its symptom and a small repro, and any guess at a cause is labelled as a guess.
 - The original app's source could be read freely.
@@ -35,6 +38,8 @@ We met neojac cold, the way a new user would:
 | 2. Write it by hand, in idiomatic Jac | Done. Users and devices are on `root.shared`, each user's folders and ciphers are on their own `root`, and the modules are wired in `archwire.jac`. |
 | 3. Plugins for what the server can't do | `rest_transport` maps vaultwarden's routes, methods, bodies and statuses. `bw_auth` reads the bearer JWT. |
 | 4. Prove it behaves the same | All 4 checks below are identical. |
+| 5. Move to 0.4.0 | 8 build errors, then a missing `open` on the transport ([#16](#16-040-breaks-the-033-project)). All 4 checks identical again. |
+| 6. Restart check (new) | Every user locked out ([#14](#14-a-str--none-field-holding-none-locks-every-user-out-after-a-restart)). Fixed by storing `""`, now the same as the original. |
 
 ## How "the same" is checked
 
@@ -46,16 +51,48 @@ Both servers run behind `proof/proxy.py`, a TLS proxy that logs every request an
 | Every request and reply of that session | `proof/expected.wire` | 23 / 23 |
 | Error replies: bad logins, bad grants, bad refresh, 401, 404, malformed bodies | `proof/expected.errors` | 13 / 13 |
 | Edge cases: validation messages, another user's items, 422 shapes, cipher JSON normalisation | `proof/expected.probe` | 57 / 57 |
+| Restart: a second user logs in again with `bw` and lists folders and items, decrypted (`proof/restart.sh`) | the same before the restart | identical, and the same as the original's |
+
+The original was run again on 0.4.0's retest too, from a fresh data folder: all 4 checks are identical for it as well.
+
+One error case changed. For an unknown email, `prelogin` answers with one of 6 fake KDF settings, picked by an HMAC of the email with the install's own key. The first port hard-coded the answer the baseline's install gave, so it matched only by luck. A fresh original gave another answer. The port now does upstream's HMAC pick, and the check prints what holds on every install: one of upstream's 6 settings, `salt` null, the same on every call and for `" NOBODY@x.com "`. That was a mistake in the port, not in neojac.
+
+### Speed and memory
+
+Same machine, `proof/errors.sh` and `proof/probe.py` once each on a fresh server.
+
+| | Original (Rust, release build) | Port (`neojac run`, built binary) |
+|---|---|---|
+| `errors.sh` + `probe.py` | 0.93 s | 2.25 s |
+| `probe.py`'s 61 requests | 0.22 s | 1.84 s |
+| Of those, the 5 that hash a password | 0.18 s | 1.80 s |
+| The other 56 | 0.04 s | 0.04 s |
+| Server memory (RSS) | about 26 MB | about 14 MB |
+
+The original has a login rate limit, which the port doesn't. Run the checks back to back and the original answers "Too many login requests" quickly, so its timings above are from one run on a fresh server.
 
 ## Findings at a glance
 
 | Severity | Count | Meaning |
 |---|---|---|
+| Critical | 1 | Loses or locks up data that was accepted |
 | Blocker | 3 | Stops the port as neojac stands |
-| Major | 4 | Needs a real workaround, such as a custom plugin |
-| Minor | 6 | Friction, wrong docs, or an unclear error |
+| Major | 6 | Needs a real workaround, such as a custom plugin |
+| Minor | 7 | Friction, wrong docs, or an unclear error |
 
-Click a number to jump to its full repro.
+Click a number to jump to its full repro. Each one says what 0.4.0 changed.
+
+### The data store
+
+| # | Severity | What happens |
+|---|---|---|
+| [#14](#14-a-str--none-field-holding-none-locks-every-user-out-after-a-restart) | Critical | A `str \| None` field holding `None` is accepted, and after a restart no user can log in. New here; the same bug as [docs-jac #14](https://github.com/ThiruvarankanM/docs-jac/blob/main/FINDINGS.md#14-a-str--none-field-holding-none-still-makes-the-kept-graph-unreadable-marked-17). |
+
+### Speed
+
+| # | Severity | What happens |
+|---|---|---|
+| [#15](#15-password-hashing-is-about-10-times-slower-inside-a-built-app) | Major | `hashlib.pbkdf2_hmac` is about 10 times slower inside a built app than in the system's Python, so each login takes about 0.36 s against 0.04 s. |
 
 ### The built-in server
 
@@ -79,6 +116,7 @@ Click a number to jump to its full repro.
 | # | Severity | What happens |
 |---|---|---|
 | [#11](#11-a-class-cannot-derive-from-an-obj) | Minor | A `class` can't derive from an `obj`, so a transport's claim that holds a Python server must be an `obj`. |
+| [#17](#17-an-import-inside-a-function-is-refused) | Minor | An import inside a function is refused (E5090). Documented, with a clear fix. |
 
 ### Error messages
 
@@ -88,20 +126,26 @@ Click a number to jump to its full repro.
 | [#9](#9-a-union-endpoint-is-reported-inside-neojacs-runtime) | Minor | A union-typed endpoint is reported inside neojac's codec, and only after other errors are fixed. |
 | [#13](#13-lint-rules-print-as-errors-that-do-not-stop-a-build) | Minor | Lints print as `error[...]` and fail `check`, but `build` succeeds. |
 
+### Toolchain
+
+| # | Severity | What happens |
+|---|---|---|
+| [#16](#16-040-breaks-the-033-project) | Major | 0.4.0 breaks the 0.3.3 project: 8 errors, then a ninth, with no migration page. |
+
 ### Documentation
 
 | # | Severity | What happens |
 |---|---|---|
-| [#5](#5-writing-a-plugin-points-at-examples-that-are-not-shipped) | Minor | The `writing-a-plugin` skill points at examples that don't ship. |
-| [#12](#12-data_dir-is-missing-from-the-stdjacplan-table) | Minor | `data_dir()` is used in the guides but missing from the `stdjac.plan` reference table. |
+| [#5](#5-writing-a-plugin-points-at-examples-that-are-not-shipped) | Minor | The `writing-a-plugin` skill pointed at examples that didn't ship. On 0.4.0 they ship, but only as neojac's own source. |
+| [#12](#12-data_dir-is-missing-from-the-stdjacplan-table) | Minor | `data_dir()` is used in the guides but missing from the `stdjac.plan` reference table. On 0.4.0 it is named, still with no row of its own. |
 
-Other ports from the same run: [marked-jac](https://github.com/ThiruvarankanM/marked-jac).
+Other ports from the same run: [marked-jac](https://github.com/ThiruvarankanM/marked-jac) and [docs-jac](https://github.com/ThiruvarankanM/docs-jac).
 
 ---
 
 ## Setup details
 
-Compiler: neojac 0.3.3 (macos-aarch64, 98a4abf03de2)
+Compiler: neojac 0.3.3 (macos-aarch64, 98a4abf03de2), retested on neojac 0.4.0 (macos-aarch64, bdb6b2746f64)
 Target: vaultwarden, a Bitwarden-compatible password manager server (Rust, 64 files, 40.6k lines; Rocket + Diesel)
 Proof: the same HTTP requests (as the Bitwarden clients send them) and the real `bw` CLI, against the original and the Jac version.
 
@@ -120,6 +164,10 @@ Proof: the same HTTP requests (as the Bitwarden clients send them) and the real 
 | 11 | language | minor | E5090: a `class` cannot derive from an `obj` (`stdjac.remote.Claim`) "yet", so a transport's claim holding a Python server must be an `obj` |
 | 12 | docs | minor | `stdjac.plan`'s `data_dir()` is used by `apps/plugins` and the `writing-a-plugin` skill but is missing from the `stdjac.plan` table, which lists only `plan().data_dir` |
 | 13 | diagnostics | minor | Lint rules print as `error[W3055]` and make `neojac check` exit 1, while `neojac build` of the same file succeeds |
+| 14 | store | critical | 0.4.0: a `str \| None` field holding `None` is kept, and after a restart every call that reads a user fails with `DataError ... expected a str, got None`: no one can log in. `int \| None` holding `None` is fine |
+| 15 | runtime | major | 0.4.0: `hashlib.pbkdf2_hmac("sha256", ..., 600000)` takes 0.45 s inside a built app, 0.14 s in `neojac python`, 0.045 s in the system's Python 3 |
+| 16 | toolchain | major | 0.4.0 breaks the 0.3.3 project: E2226, E2234, E2214 and E1575 (8 errors), then E1281; no migration page |
+| 17 | language | minor | An import inside a function is E5090; the docs say so and show the fix |
 
 ---
 
@@ -152,6 +200,8 @@ Other languages: `cargo` itself answers a target-less command with one `error:` 
 
 Suggested support: catch the cargo-metadata failure and report it as E4001 at the `Cargo.toml`.
 
+**On 0.4.0:** still there. Both commands print the same traceback, ending in ``ValueError: error: no library targets found in package `rbin` ``.
+
 ## 2. `neojac port` refuses a binary crate
 
 Repro: as in 1, `neojac port --check rbin`:
@@ -165,6 +215,8 @@ rbin/Cargo.toml: error[E4001]: port does not translate a Rust crate with no libr
 Other languages: `c2rust` translates any C translation unit, `main` included; Python's `2to3` translates scripts as modules.
 
 Suggested support: port `src/main.rs` as a Jac module with `with entry` calling the ported `main`.
+
+**On 0.4.0:** still there, the same E4001.
 
 ## 3. Rust port refuses nearly every construct real code uses
 
@@ -189,6 +241,8 @@ error[E4001]: port does not translate a call of 'std::convert::From::from', whic
 Other languages: Jac itself has enums, `match`, interfaces, generics, lambdas, tuples and `str`, so each refused construct has a target (`neojac docs language/enums`, `pattern-matching`, `interfaces`, `generics`).
 
 Suggested support, in order of what unblocks most code: `String`/`&str` to `str`, `use` and modules, enums + `match` to Jac enums + `match`, `Vec`/`HashMap` to `list`/`dict`, closures to lambdas, `impl Trait for T` to interfaces.
+
+**On 0.4.0:** still there. The repro gives 5 E4001s: the enum, `Kind`, `match`, `String` and `From::from`.
 
 ## 4. `@restspec` cannot serve an existing HTTP API
 
@@ -220,11 +274,15 @@ Suggested support: `HTTPMethod` with PUT/PATCH/DELETE; path templates bound to p
 
 What this port does instead: the `transport` abstraction's `Request`/`Response` carry method, path, query, headers, body and status, so a transport plugin maps the routes onto endpoints (see the design notes).
 
+**On 0.4.0:** still there. `HTTPMethod` is still `GET` and `POST`, and `@restspec` still serves only a function of no parameters.
+
 ## 5. `writing-a-plugin` points at examples that are not shipped
 
 `neojac skills writing-a-plugin`, the table "A worked example in neojac's repository": `tests/plugins/jsonstore`, `tests/plugins/ticket_auth`, `tests/plugins/line_transport`, ... Nothing under `neojac docs --path` holds their source: `neojac docs search line_transport` finds the skill and one table row of `apps/plugins` ("A wire of its own, a line of JSON each way over TCP"). A transport plugin's whole `listen`/`claim`/`send` contract has to be learned from the `apps/stdjac` table alone.
 
 Suggested support: ship each example as a docs page (as `apps/stdjac` does for `stdjac.graph`), or as `neojac skills` assets.
+
+**On 0.4.0:** changed. The skill now says the plugins in neojac's `abstractions/`, beside `rt/` in the release, are each a worked example. So the examples ship, but as neojac's own source, which these ground rules don't allow reading. The docs pages still give no complete transport or auth plugin. The same as [docs-jac #10](https://github.com/ThiruvarankanM/docs-jac/blob/main/FINDINGS.md#10-plugin-examples-ship-but-as-neojac-source).
 
 ## 6. restspec diagnostics: wrong wording, and a location inside neojac
 
@@ -241,7 +299,7 @@ def:pub put_x -> str {
 
 ```text
 api.jac:8:18: error[E0108]: cannot evaluate at compile time: neojac evaluates only enum members and methods as attributes
-/Users/thiru-07/.neojac/0.3.3/rt/stdjac/server.jac:346:5: error[E0109]: comptime assertion failed: a function served at a path of its own takes no parameters
+~/.neojac/0.3.3/rt/stdjac/server.jac:346:5: error[E0109]: comptime assertion failed: a function served at a path of its own takes no parameters
  346 |     comptime assert len(params(f))
 ```
 
@@ -250,6 +308,8 @@ Expected: `HTTPMethod has no member PUT (it has GET, POST)`, and E0109 at `api.j
 Other languages: rustc reports a failed `const` assertion / trait bound at the user's call site with "required by this bound in ..." as a note; TypeScript names the missing enum member.
 
 Suggested support: E0108 for a missing member of a known enum says so; a `comptime assert` failing for a decorator's argument is reported at the decorated declaration.
+
+**On 0.4.0:** still there, word for word. The E0109 now points at `~/.neojac/0.4.0/rt/stdjac/server.jac:272`.
 
 ## 7. An endpoint cannot learn who is calling
 
@@ -262,6 +322,8 @@ Repro: there is no function to call; `neojac docs search "caller's id"` and `neo
 Other languages: FastAPI `Depends(get_current_user)`, Express `req.user`, Rocket request guards (`headers: Headers` in vaultwarden itself), Django `request.user`.
 
 Suggested support: `stdjac.server.caller() -> str | None` inside an endpoint, returning what `Auth.caller` returned for the request.
+
+**On 0.4.0:** still there. `apps/server`'s "Who is calling" still gives the endpoint only `root`.
 
 ## 8. No JSON value type for an endpoint
 
@@ -284,6 +346,8 @@ Other languages: `serde_json::Value`, TypeScript `unknown`/`JsonValue`, Pydantic
 
 Suggested support: a sendable `json` type (null, bool, number, str, list of json, dict of str to json) that crosses as-is.
 
+**On 0.4.0:** still there, the same two E1308s.
+
 ## 9. A union endpoint is reported inside neojac's runtime
 
 Repro:
@@ -294,14 +358,16 @@ def:pub either(v: int | str) -> int | str;
 
 ```text
 svc.jac:1:1: error[E1229]: serve_def() cannot be specialized for f=either
-/Users/thiru-07/.neojac/0.3.3/rt/stdjac/codec.jac:96:9: error[E0109]: comptime assertion failed: the codec takes a union of one type and None
+~/.neojac/0.3.3/rt/stdjac/codec.jac:96:9: error[E0109]: comptime assertion failed: the codec takes a union of one type and None
     in encode_sent[int | str], asked for at .../rt/stdjac/codec.jac:68:16
-/Users/thiru-07/.neojac/0.3.3/rt/stdjac/codec.jac:188:9: error[E0109]: comptime assertion failed: the codec takes a union of one type and None
+~/.neojac/0.3.3/rt/stdjac/codec.jac:188:9: error[E0109]: comptime assertion failed: the codec takes a union of one type and None
 ```
 
 With `echo` of finding 8 in the same file, `neojac check` reports the two E1308s and nothing for `either`; it shows up only after they are fixed.
 
 Expected: one E1308 at `svc.jac:1` (`'v: int | str' is not sendable`), as the crossings page says, reported together with the others.
+
+**On 0.4.0:** still there, the same E1229 and two E0109s in `rt/stdjac/codec.jac`. The same happens for an `any` field in a node: E1229 "keep_node() cannot be specialized" and E0109s inside `codec.jac` ("the codec sends only what is sendable"), never at the field.
 
 ## 10. An endpoint's reply has no status, content type or headers
 
@@ -316,6 +382,8 @@ Expected: one E1308 at `svc.jac:1` (`'v: int | str' is not sendable`), as the cr
 The port returns `Reply(status, body, ctype)` from every endpoint, and the `rest_transport` plugin turns that object into the HTTP response. It also maps vaultwarden's routes, path parameters, form bodies, query strings and selected headers onto `/__jac/call/` itself (about 250 lines on `http.server`). This is finding 4's cost.
 
 Suggested support: a `stdjac.server.Reply(status, body, headers)` an endpoint may return, honoured by the built-in transport.
+
+**On 0.4.0:** still there. `@restspec` has `produces` and `envelope` only, and the endpoint reply is the same envelope.
 
 ## 11. A `class` cannot derive from an `obj`
 
@@ -335,11 +403,15 @@ cls.jac:3:1: error[E5090]: neojac does not support a `class` deriving from Claim
 
 A transport mixes Python classes (`http.server.BaseHTTPRequestHandler`, a `class`) with the plugin interfaces (`obj`). The port makes the claim an `obj` holding the server as `any`.
 
+**On 0.4.0:** still there. `Claim` now comes from `transport.contract`, and `class HttpClaim(Claim)` is the same E5090.
+
 ## 12. `data_dir()` is missing from the `stdjac.plan` table
 
 `neojac docs apps/plugins` ("Writing a plugin") calls `data_dir()`, and the `writing-a-plugin` skill says "`stdjac.plan`'s `data_dir()` is where a program keeps its data". The `stdjac.plan` table in `neojac docs apps/stdjac` lists `plan()`, `keep_arrangement`, `remote_url` and `env_name`; `data_dir` appears only as a field of `plan()`'s `AppPlan`. The function works (the port keeps its JWT key there), but its signature and what it returns outside an app are undocumented.
 
 Suggested support: a `data_dir() -> str` row in the table.
+
+**On 0.4.0:** partly fixed. The overview table of `apps/stdjac` now names `data_dir` among the plan's words, but "The plan" table still has no row with its signature. A plugin now gets the data directory from its host (`host.data_dir()`), which is documented.
 
 ## 13. Lint rules print as errors that do not stop a build
 
@@ -357,3 +429,68 @@ with entry {
 
 `neojac check main.jac` exits 1 with `error[W3055]` and `error[W3037]`; `neojac build main.jac -o m` exits 0 and builds `m`. `neojac docs lint`: the rules are "reported by `check` only", and the group `"clean"` is on by default. The behaviour is documented, but a `W` code labelled `error` is read as a failure; `warning[W3055]` (or `lint[...]`) would match what `build` does.
 
+**On 0.4.0:** still there. A project now needs an `archwire.jac` (E2231) unless `jac.toml` says `archwire = false`. With that, `check` exits 1 with `error[W3055]` and `error[W3037]`, and `build` exits 0 and the program runs.
+
+## 14. A `str | None` field holding `None` locks every user out after a restart
+
+The 0.3.3 checks always started the server with `--fresh`, so a restart was never tested. The new restart check found this on 0.4.0.
+
+- **What happened:** register a user with `bw`, restart the server without `--fresh`, log in again. `bw` gets a 500 on `prelogin`, and the server log says:
+
+  ```text
+  endpoint /__jac/call/api/identity/prelogin failed: DataError: .../.jac/data/vaultwarden/graph.db holds a model.User node, 0bb821ab894b9da10000000000000003, which no longer fits its type (.password_hint: expected a str, got None)
+  ```
+
+  Every user without a password hint is unreadable, so no one can log in, and no one can reach their vault.
+- **Repro** (a one-module app, `space api: native { notes; }`, `app api { run api; }`):
+
+  ```jac
+  node Note {
+      has text: str,
+          n: int | None = None,
+          s: str | None = None;
+  }
+
+  def:pub add(text: str) -> int;    # root.shared ++> Note(text=text); return the count
+  def:pub count -> int;              # return len([root.shared --> [?:Note]])
+  ```
+
+  `add` answers `{"ok": true, "data": 1}`. Restart without `--fresh`, then `count` answers `{"ok": false, "kind": "failed", "detail": "count failed"}`, with `(.s: expected a str, got None)` in the log. With only the `int | None` field, `count` answers 1 after the restart: `int | None` holding `None` is fine.
+- **Same bug as** [docs-jac #14](https://github.com/ThiruvarankanM/docs-jac/blob/main/FINDINGS.md#14-a-str--none-field-holding-none-still-makes-the-kept-graph-unreadable-marked-17) and [marked-jac #17](https://github.com/ThiruvarankanM/marked-jac/blob/main/FINDINGS.md#17-a-str--none-field-holding-none-makes-the-kept-graph-unreadable). It is critical here because a password manager that forgets its users after a restart loses everyone's vault.
+- **What the port does:** its 9 optional text fields (`private_key`, `public_key`, `password_hint`, `key_id`, `avatar_color`, a cipher's `notes`, `fields`, `password_history` and `key`) are `str = ""`, and `opt()` turns `""` back into JSON `null` in each reply. That is a workaround forced by this bug, written down here. All 4 checks and the restart check are identical with it.
+- **Expected:** what a write accepts, a read accepts.
+
+## 15. Password hashing is about 10 times slower inside a built app
+
+- **What happened:** the port and the original both hash the master password with PBKDF2-SHA256, 600,000 rounds, at register and at each login. In `probe.py`, the 5 requests that do it take 1.80 s on the port and 0.18 s on the original. The other 56 requests take 0.04 s on both.
+- **Repro:** the app of #14, plus (with `import hashlib;` and `import time;` at the top of its impl)
+
+  ```jac
+  def:pub bench -> float;    # t = time.time(); hashlib.pbkdf2_hmac("sha256", b"x", b"yyyyyyyyyyyyyyyy", 600000, 32); return time.time() - t
+  ```
+
+  | Where the same call runs | Time |
+  |---|---|
+  | Inside the built app (`neojac run api`, then `bench`) | 0.45 s, 3 times out of 3 |
+  | `neojac python -c ...` (CPython 3.15.2, OpenSSL 3.5.9) | 0.14 s |
+  | The system's `python3` (OpenSSL 3.6.3) | 0.045 s |
+
+- **Why it matters:** each login holds a request for about 0.36 s instead of 0.04 s. That is felt by users, and it makes an endpoint that hashes cheaper to flood.
+- **Guess, not checked:** the OpenSSL neojac ships may be built without the CPU's SHA-256 instructions, and a built app may run it slower still. The cause was not looked for.
+- **Expected:** a built app runs a C-backed library call about as fast as CPython does.
+
+## 16. 0.4.0 breaks the 0.3.3 project
+
+- **What happened:** the unchanged 0.3.3 port fails `neojac check` on 0.4.0 with 8 errors:
+  - E2226 and E2234: `[plugins]` is now `[packages]`, and `stdjac.<module>` imports are now `import from stdjac { ... }`;
+  - E2214: each plugin now needs `interface_ver = 1`, an `archwire.jac` of its own, and its contract from `transport.contract`, `auth.contract` and `common.contract`;
+  - E1575: a helper script in `proof/` was now built into the app ([docs-jac #20](https://github.com/ThiruvarankanM/docs-jac/blob/main/FINDINGS.md#20-a-helper-script-in-the-project-tree-is-built-into-the-app)).
+
+  With those fixed, a ninth error, E1281, said the transport now needs an `open(host: dyn Host)`.
+- **Cost:** each change was learnt from its error code, one at a time. There is no changelog or migration page, as [docs-jac #4](https://github.com/ThiruvarankanM/docs-jac/blob/main/FINDINGS.md#4-040-breaks-033-projects-with-no-migration-page) says.
+- **Expected:** a migration page listing each change, or `neojac fmt --fix` doing the mechanical ones.
+
+## 17. An import inside a function is refused
+
+- **Repro:** `import hashlib;` inside a function body is `error[E5090]: neojac does not support an import here yet`.
+- `neojac docs E5090` and `language/modules` both say so and give the fix: move the import to the top of the module. It is a small limit, logged because Python code often imports inside a function to load a module only when it is needed.

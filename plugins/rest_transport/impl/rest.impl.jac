@@ -18,6 +18,10 @@ impl Handler.log_message(format: str, *args: any) {
     return;
 }
 
+impl RestTransport.open(host: dyn Host) {
+    return;
+}
+
 impl RestTransport.send(address: str, r: Request, seconds: float) -> Response {
     u = urllib.parse.urlsplit(address);
     conn = http.client.HTTPConnection(u.hostname, u.port, timeout=seconds);
@@ -154,7 +158,13 @@ impl answer(h: any) {
         } except ValueError {
             write(
                 h,
-                Response(status=400, ctype="text/html; charset=utf-8", body=bad_request.encode(), headers={}, events=None),
+                Response(
+                    status=400,
+                    ctype="text/html; charset=utf-8",
+                    body=bad_request.encode(),
+                    headers={},
+                    events=None,
+                ),
             );
             return;
         }

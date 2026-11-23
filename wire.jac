@@ -32,4 +32,8 @@ def sign(claims: dict[str, any]) -> str;
 
 def verify(token: str, iss: str) -> dict[str, any] | None;
 
+def prelogin_index(email: str, n: int) -> int;
+
+def opt(s: str) -> str | None;
+
 def new_uuid -> str;

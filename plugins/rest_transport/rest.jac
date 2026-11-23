@@ -4,7 +4,8 @@ import time;
 import http.server;
 import http.client;
 import urllib.parse;
-import from stdjac.remote { Transport, Request, Response, Claim, Tick, CannotListen }
+import from transport.contract { Transport, Request, Response, Claim, Tick, CannotListen }
+import from common.contract { Host }
 
 obj Route {
     has method: str,
@@ -33,6 +34,8 @@ class Handler(http.server.BaseHTTPRequestHandler) {
 
 obj RestTransport(Transport) {
     has routes: list[str] = [];
+
+    def open(host: dyn Host);
 
     def send(address: str, r: Request, seconds: float) -> Response;
 

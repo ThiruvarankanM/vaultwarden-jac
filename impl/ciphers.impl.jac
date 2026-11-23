@@ -1,7 +1,7 @@
 import json;
 import re;
 import datetime;
-import from stdjac.graph { remove }
+import from stdjac { remove }
 
 glob cipher_spec: dict[str, any] = {
     "id": "str?",
@@ -29,10 +29,13 @@ glob cipher_spec: dict[str, any] = {
     "attachments": "any",
     "attachments2": "dict?",
     "lastKnownRevisionDate": "str?",
-    "archivedDate": "str?"
+    "archivedDate": "str?",
 };
 
-glob share_spec: dict[str, any] = {"cipher|Cipher": cipher_spec, "collectionIds|CollectionIds": "list"};
+glob share_spec: dict[str, any] = {
+    "cipher|Cipher": cipher_spec,
+    "collectionIds|CollectionIds": "list",
+};
 
 glob epoch: str = "1970-01-01T00:00:00.000000Z";
 
@@ -67,11 +70,23 @@ def rfc3339(s: str) -> str {
     return m.group(1) + "T" + m.group(2) + "." + frac + zone;
 }
 
-glob type_keys: dict[int, str] = {1: "login", 2: "secureNote", 3: "card", 4: "identity", 5: "sshKey", 6: "bankAccount", 7: "driversLicense", 8: "passport"};
+glob type_keys: dict[int, str] = {
+    1: "login",
+    2: "secureNote",
+    3: "card",
+    4: "identity",
+    5: "sshKey",
+    6: "bankAccount",
+    7: "driversLicense",
+    8: "passport",
+};
 
 def lcase_first(v: any) -> any {
     if isinstance(v, dict) {
-        return {(k[:1].lower() + k[1:] if isinstance(k, str) else k): lcase_first(x) for (k, x) in v.items()};
+        return {
+            (k[:1].lower() + k[1:] if isinstance(k, str) else k): lcase_first(x)
+            for (k, x) in v.items()
+        };
     }
     if isinstance(v, list) {
         return [lcase_first(x) for x in v];
@@ -81,7 +96,10 @@ def lcase_first(v: any) -> any {
 
 def strip_response(v: any) -> any {
     if isinstance(v, list) {
-        return [{k: x for (k, x) in i.items() if k != "response"} if isinstance(i, dict) else i for i in v];
+        return [
+            {k: x for (k, x) in i.items() if k != "response"} if isinstance(i, dict) else i
+            for i in v
+        ];
     }
     return v;
 }
@@ -112,14 +130,19 @@ def type_data(c: Cipher) -> any {
     if c.atype == 2 and not is_number(d.get("type")) {
         d = {"type": 0};
     }
-    if c.atype == 5 and not all(isinstance(d.get(k), str) and d[k] for k in ("keyFingerprint", "privateKey", "publicKey")) {
+    if c.atype == 5
+        and not all(
+            isinstance(d.get(k), str) and d[k]
+            for k in ("keyFingerprint", "privateKey", "publicKey"),
+        )
+    {
         return None;
     }
     return d;
 }
 
 def fields_json(c: Cipher) -> list[any] | None {
-    if c.fields is None {
+    if not c.fields {
         return None;
     }
     try {
@@ -143,7 +166,7 @@ def fields_json(c: Cipher) -> list[any] | None {
 }
 
 def history_json(c: Cipher) -> list[any] | None {
-    if c.password_history is None {
+    if not c.password_history {
         return None;
     }
     try {
@@ -175,12 +198,12 @@ impl cipher_json(c: Cipher) -> dict[str, any] {
         "deletedDate": fmt_date(c.deleted_us),
         "reprompt": c.reprompt if c.reprompt in (0, 1) else 0,
         "organizationId": None,
-        "key": c.key,
+        "key": opt(c.key),
         "attachments": None,
         "organizationUseTotp": True,
         "collectionIds": [],
         "name": c.name,
-        "notes": c.notes,
+        "notes": opt(c.notes),
         "fields": fields_json(c),
         "passwordHistory": history_json(c),
         "login": None,
@@ -196,7 +219,7 @@ impl cipher_json(c: Cipher) -> dict[str, any] {
         "archivedDate": fmt_date(c.archived_us),
         "edit": True,
         "viewPassword": True,
-        "permissions": {"delete": True, "restore": True}
+        "permissions": {"delete": True, "restore": True},
     };
     out[type_keys[c.atype]] = type_data(c);
     return out;
@@ -206,7 +229,10 @@ def save_data(c: Cipher, u: User, data: dict[str, any], check_date: bool) -> Rep
     if data.get("encryptedFor") is not None and data.get("encryptedFor") != u.uuid {
         return err("Cipher was not encrypted for the current user. Please try again.");
     }
-    if data.get("encryptedByKeyId") is not None and u.key_id is not None and data.get("encryptedByKeyId") != u.key_id {
+    if data.get("encryptedByKeyId") is not None
+        and u.key_id != ""
+        and data.get("encryptedByKeyId") != u.key_id
+    {
         return err("Cipher was not encrypted with the current user key. Please try again.");
     }
     if data.get("organizationId") or data.get("organizationID") {
@@ -227,12 +253,16 @@ def save_data(c: Cipher, u: User, data: dict[str, any], check_date: bool) -> Rep
     if check_date and isinstance(data.get("lastKnownRevisionDate"), str) {
         known = parse_date(data["lastKnownRevisionDate"]);
         if known is not None and (c.updated_us - known) // 1000000 > 1 {
-            return err("The client copy of this cipher is out of date. Resync the client and try again.");
+            return err(
+                "The client copy of this cipher is out of date. Resync the client and try again."
+            );
         }
     }
     notes = data.get("notes");
     if isinstance(notes, str) and len(notes) > 10000 {
-        return err("The field Notes exceeds the maximum encrypted value length of 10000 characters.");
+        return err(
+            "The field Notes exceeds the maximum encrypted value length of 10000 characters."
+        );
     }
     folder: Folder | None = None;
     fid = data.get("folderId");
@@ -250,11 +280,15 @@ def save_data(c: Cipher, u: User, data: dict[str, any], check_date: bool) -> Rep
     }
     c.atype = atype;
     c.name = name;
-    c.notes = notes;
-    c.fields = json.dumps(strip_response(data["fields"]), separators=(",", ":")) if data.get("fields") is not None else None;
-    c.password_history = json.dumps(data["passwordHistory"], separators=(",", ":")) if data.get("passwordHistory") is not None else None;
+    c.notes = str(notes or "");
+    c.fields = json.dumps(strip_response(data["fields"]), separators=(",", ":"))
+        if data.get("fields") is not None
+        else "";
+    c.password_history = json.dumps(data["passwordHistory"], separators=(",", ":"))
+        if data.get("passwordHistory") is not None
+        else "";
     c.data = json.dumps(tdata, separators=(",", ":"));
-    c.key = data.get("key");
+    c.key = str(data.get("key") or "");
     c.reprompt = data.get("reprompt");
     c.favorite = bool(data.get("favorite", False));
     archived = data.get("archivedDate");
@@ -284,7 +318,13 @@ def create(body: str, bearer: str, shared: bool) -> Reply {
         data = data.get("cipher", data.get("Cipher"));
     }
     now = now_us();
-    c = Cipher(uuid=new_uuid(), atype=int(data.get("type", 0) or 0), name="", created_us=now, updated_us=now);
+    c = Cipher(
+        uuid=new_uuid(),
+        atype=int(data.get("type", 0) or 0),
+        name="",
+        created_us=now,
+        updated_us=now,
+    );
     bad = save_data(c, u, data, False);
     if bad is not None {
         return bad;
@@ -294,7 +334,11 @@ def create(body: str, bearer: str, shared: bool) -> Reply {
 }
 
 impl list_ciphers(bearer: str) -> Reply {
-    return ok({"data": [cipher_json(c) for c in [root --> [?:Cipher]]], "object": "list", "continuationToken": None});
+    return ok({
+        "data": [cipher_json(c) for c in [root --> [?:Cipher]]],
+        "object": "list",
+        "continuationToken": None,
+    });
 }
 
 impl read_cipher(id: str, bearer: str) -> Reply {

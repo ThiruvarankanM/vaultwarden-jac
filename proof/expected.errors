@@ -56,9 +56,11 @@
     </div>
     <div role="contentinfo" align="center">
         <small>R
-== prelogin
+== prelogin (unknown email: the settings depend on the install's key, so check what holds on every install)
 200 application/json
-{"kdf":1,"kdfIterations":3,"kdfMemory":64,"kdfParallelism":4,"kdfSettings":{"iterations":3,"kdfType":1,"memory":64,"parallelism":4},"salt":null}
+one of upstream's fake settings, salt null: True
+the same on every call: True
+the same for ' NOBODY@x.com ': True
 == badjson
 400 text/html; charset=utf-8
 <!DOCTYPE html>

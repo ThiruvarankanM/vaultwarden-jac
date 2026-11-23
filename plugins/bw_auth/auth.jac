@@ -4,13 +4,14 @@ import hmac;
 import hashlib;
 import base64;
 import time;
-import from stdjac.server { Auth, SignIn, Session, Rejected }
-import from stdjac.plan { data_dir }
+import from auth.contract { Auth, AuthHost, SignIn, Session, Rejected }
+
+glob keys: dict[str, str] = {};
 
 obj BwAuth(Auth) {
     has issuer: str = "http://localhost|login";
 
-    def open;
+    def open(host: dyn AuthHost);
 
     def caller(headers: dict[str, str]) -> str | None;
 

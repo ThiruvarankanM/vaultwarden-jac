@@ -1,3 +1,4 @@
 .jac/
 dist/
 .agents/
+__pycache__/

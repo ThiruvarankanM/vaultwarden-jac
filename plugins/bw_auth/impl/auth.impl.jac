@@ -1,5 +1,5 @@
-impl BwAuth.open {
-    return;
+impl BwAuth.open(host: dyn AuthHost) {
+    keys["path"] = os.path.join(host.data_dir(), "jwt.key");
 }
 
 impl BwAuth.caller(headers: dict[str, str]) -> str | None {
@@ -27,7 +27,7 @@ impl unb64(s: str) -> bytes {
 }
 
 impl subject(token: str, iss: str) -> str | None {
-    path = os.path.join(data_dir(), "jwt.key");
+    path = keys.get("path", "");
     parts = token.split(".");
     if len(parts) != 3 or not os.path.exists(path) {
         return None;

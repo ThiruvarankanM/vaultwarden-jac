@@ -13,6 +13,18 @@ c badrefresh -X POST $B/identity/connect/token -d 'grant_type=refresh_token&refr
 c 404 $B/api/nope
 c 401 $B/api/sync
 c 401bad $B/api/sync -H 'Authorization: Bearer junk'
-c prelogin -X POST $B/identity/accounts/prelogin -H 'Content-Type: application/json' -d '{"email":"nobody@x.com"}'
+k(){ curl -s -X POST $B/identity/accounts/prelogin -H 'Content-Type: application/json' -d "{\"email\":\"$1\"}"; }
+echo "== prelogin (unknown email: the settings depend on the install's key, so check what holds on every install)"
+curl -s -o /dev/null -w '%{http_code} %{content_type}\n' -X POST $B/identity/accounts/prelogin -H 'Content-Type: application/json' -d '{"email":"nobody@x.com"}'
+python3 - "$(k nobody@x.com)" "$(k nobody@x.com)" "$(k ' NOBODY@x.com ')" <<'P'
+import json, sys
+a, b, c = (json.loads(x) for x in sys.argv[1:])
+fake = [(0, 600000, None, None), (0, 100000, None, None), (0, 5000, None, None), (1, 3, 64, 4), (1, 6, 32, 4)]
+t = (a["kdf"], a["kdfIterations"], a["kdfMemory"], a["kdfParallelism"])
+s = {"iterations": t[1], "kdfType": t[0], "memory": t[2], "parallelism": t[3]}
+print("one of upstream's fake settings, salt null:", t in fake and a["kdfSettings"] == s and a["salt"] is None)
+print("the same on every call:", a == b)
+print("the same for ' NOBODY@x.com ':", a == c)
+P
 c badjson -X POST $B/identity/accounts/prelogin -H 'Content-Type: application/json' -d '{oops'
 c alive $B/alive

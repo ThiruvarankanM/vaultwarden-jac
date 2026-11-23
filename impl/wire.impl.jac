@@ -6,7 +6,7 @@ import base64;
 import uuid;
 import time;
 import from datetime { datetime, timezone }
-import from stdjac.plan { data_dir }
+import from stdjac { data_dir }
 
 impl dumps(v: any) -> str {
     return json.dumps(v, sort_keys=True, separators=(",", ":"));
@@ -21,17 +21,23 @@ impl empty -> Reply {
 }
 
 impl err(msg: str) -> Reply {
-    return Reply(status=400, body=json.dumps({
-        "message": msg,
-        "validationErrors": {"": [msg]},
-        "errorModel": {"message": msg, "object": "error"},
-        "error": "",
-        "error_description": "",
-        "exceptionMessage": None,
-        "exceptionStackTrace": None,
-        "innerExceptionMessage": None,
-        "object": "error"
-    }, separators=(",", ":")));
+    return Reply(
+        status=400,
+        body=json.dumps(
+            {
+                "message": msg,
+                "validationErrors": {"": [msg]},
+                "errorModel": {"message": msg, "object": "error"},
+                "error": "",
+                "error_description": "",
+                "exceptionMessage": None,
+                "exceptionStackTrace": None,
+                "innerExceptionMessage": None,
+                "object": "error",
+            },
+            separators=(",", ":"),
+        ),
+    );
 }
 
 impl unprocessable -> Reply {
@@ -79,7 +85,10 @@ impl fits(v: any, spec: dict[str, any]) -> bool {
             return False;
         }
         if not given {
-            if not (isinstance(kind, str) and kind.endswith("?")) and not (isinstance(kind, dict) and kind.get("?", False)) and kind != "any" {
+            if not (isinstance(kind, str) and kind.endswith("?"))
+                and not (isinstance(kind, dict) and kind.get("?", False))
+                and kind != "any"
+            {
                 return False;
             }
             continue;
@@ -169,4 +178,14 @@ impl verify(token: str, iss: str) -> dict[str, any] | None {
 
 impl new_uuid -> str {
     return str(uuid.uuid4());
+}
+
+impl prelogin_index(email: str, n: int) -> int {
+    k = hmac.new(key(), b"prelogin-kdf", hashlib.sha256).digest();
+    tag = hmac.new(k, email.encode(), hashlib.sha256).digest();
+    return ((tag[0] << 8) | tag[1]) % n;
+}
+
+impl opt(s: str) -> str | None {
+    return s or None;
 }

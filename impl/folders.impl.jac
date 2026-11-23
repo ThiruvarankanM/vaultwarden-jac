@@ -1,14 +1,23 @@
 import json;
-import from stdjac.graph { remove }
+import from stdjac { remove }
 
 glob folder_spec: dict[str, any] = {"name": "str", "id": "str?"};
 
 impl folder_json(f: Folder) -> dict[str, any] {
-    return {"id": f.uuid, "name": f.name, "object": "folder", "revisionDate": fmt_date(f.updated_us)};
+    return {
+        "id": f.uuid,
+        "name": f.name,
+        "object": "folder",
+        "revisionDate": fmt_date(f.updated_us),
+    };
 }
 
 impl list_folders(bearer: str) -> Reply {
-    return ok({"data": [folder_json(f) for f in [root --> [?:Folder]]], "object": "list", "continuationToken": None});
+    return ok({
+        "data": [folder_json(f) for f in [root --> [?:Folder]]],
+        "object": "list",
+        "continuationToken": None,
+    });
 }
 
 impl read_folder(id: str, bearer: str) -> Reply {

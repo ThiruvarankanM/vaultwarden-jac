@@ -1,7 +1,8 @@
 [project]
 name = "vaultwarden"
+exclude = ["proof/*"]
 
-[plugins]
+[packages]
 rest_transport = { path = "plugins/rest_transport" }
 bw_auth = { path = "plugins/bw_auth" }
 

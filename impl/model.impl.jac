@@ -1,4 +1,4 @@
-import from stdjac.graph { allroots }
+import from stdjac { allroots }
 
 impl user_by_email(email: str) -> User | None {
     want = email.lower();
@@ -65,13 +65,18 @@ impl owned(c: Cipher) -> bool {
 }
 
 impl account_keys(u: User) -> dict[str, any] | None {
-    if u.private_key is None or u.public_key is None {
+    if not u.private_key or not u.public_key {
         return None;
     }
     return {
         "object": "privateKeys",
-        "publicKeyEncryptionKeyPair": {"object": "publicKeyEncryptionKeyPair", "publicKey": u.public_key, "signedPublicKey": None, "wrappedPrivateKey": u.private_key},
+        "publicKeyEncryptionKeyPair": {
+            "object": "publicKeyEncryptionKeyPair",
+            "publicKey": u.public_key,
+            "signedPublicKey": None,
+            "wrappedPrivateKey": u.private_key,
+        },
         "securityState": None,
-        "signatureKeyPair": None
+        "signatureKeyPair": None,
     };
 }

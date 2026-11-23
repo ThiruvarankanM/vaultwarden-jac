@@ -19,12 +19,12 @@ impl config -> Reply {
             "notifications": domain + "/notifications",
             "sso": "",
             "cloudRegion": None,
-            "fillAssistRules": "https://fillassist.bitwarden.com"
+            "fillAssistRules": "https://fillassist.bitwarden.com",
         },
         "push": {"pushTechnology": 0, "vapidPublicKey": None},
         "featureStates": {"pm-19148-innovation-archive": True},
         "communication": None,
-        "object": "config"
+        "object": "config",
     });
 }
 
@@ -32,7 +32,7 @@ impl profile_json(u: User) -> dict[str, any] {
     return {
         "_status": 0,
         "accountKeys": account_keys(u),
-        "avatarColor": u.avatar_color,
+        "avatarColor": opt(u.avatar_color),
         "creationDate": fmt_date(u.created_us),
         "culture": "en-US",
         "email": u.email,
@@ -46,12 +46,12 @@ impl profile_json(u: User) -> dict[str, any] {
         "organizationsNew": [],
         "premium": True,
         "premiumFromOrganization": False,
-        "privateKey": u.private_key,
+        "privateKey": opt(u.private_key),
         "providerOrganizations": [],
         "providers": [],
         "securityStamp": u.security_stamp,
         "twoFactorEnabled": False,
-        "usesKeyConnector": False
+        "usesKeyConnector": False,
     };
 }
 
@@ -63,14 +63,19 @@ impl sync(query: str, bearer: str) -> Reply {
     q = json.loads(query);
     exclude = str(q.get("excludeDomains", "false")).lower() == "true";
     unlock: dict[str, any] = {
-        "containedKeyId": u.key_id,
-        "kdf": {"iterations": u.kdf_iter, "kdfType": u.kdf_type, "memory": u.kdf_memory, "parallelism": u.kdf_parallelism},
+        "containedKeyId": opt(u.key_id),
+        "kdf": {
+            "iterations": u.kdf_iter,
+            "kdfType": u.kdf_type,
+            "memory": u.kdf_memory,
+            "parallelism": u.kdf_parallelism,
+        },
         "masterKeyEncryptedUserKey": u.akey,
         "masterKeyWrappedUserKey": u.akey,
-        "salt": u.email.strip().lower()
+        "salt": u.email.strip().lower(),
     };
     decryption: dict[str, any] = {"masterPasswordUnlock": unlock};
-    if u.key_id is not None {
+    if u.key_id {
         decryption["userKeyId"] = u.key_id;
     }
     return ok({
@@ -83,7 +88,7 @@ impl sync(query: str, bearer: str) -> Reply {
         "policiesNew": [],
         "profile": profile_json(u),
         "sends": [],
-        "userDecryption": decryption
+        "userDecryption": decryption,
     });
 }
 
@@ -116,7 +121,7 @@ impl set_user_key_id(body: str, bearer: str) -> Reply {
     if not fits(data, {"userKeyId": "hex32"}) {
         return unprocessable();
     }
-    if u.key_id is not None {
+    if u.key_id {
         return err("User key id is already set.");
     }
     u.key_id = data["userKeyId"];
